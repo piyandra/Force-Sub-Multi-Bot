@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.telegram.forcesubmultibot.entity.Configuration;
 import org.telegram.forcesubmultibot.handler.command.CommandProcessor;
+import org.telegram.forcesubmultibot.utils.button.StartCommandButton;
 import org.telegram.forcesubmultibot.utils.message.SendingMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
@@ -15,9 +16,11 @@ import java.util.concurrent.CompletableFuture;
 public class StartHandle implements CommandProcessor {
 	private static final Logger log = LoggerFactory.getLogger(StartHandle.class);
 	private final SendingMessage sendingMessage;
+	private final StartCommandButton startCommandButton;
 
-	public StartHandle(SendingMessage sendingMessage) {
+	public StartHandle(SendingMessage sendingMessage, StartCommandButton startCommandButton) {
 		this.sendingMessage = sendingMessage;
+		this.startCommandButton = startCommandButton;
 	}
 
 	@Override
@@ -31,7 +34,12 @@ public class StartHandle implements CommandProcessor {
 		return CompletableFuture.runAsync(() -> {
 			log.info("Get Message");
 			log.info("Bot Token : {}", configuration.getBotToken());
-			sendingMessage.sendMessage(update.getMessage().getChatId().toString(), "Hello Dunia", configuration.getBotToken());
+			sendingMessage.sendMessage(update.getMessage().getChatId().toString(),
+					"Hallo " + update.getMessage().getFrom().getFirstName() + ",\n" +
+							"Ini adalah bot Master untuk membuat Force Sub Bot.\n" +
+							"Kamu bisa menghubungi admin untuk mendapatkan akses ke bot ini.\n",
+					startCommandButton.get(),
+					configuration.getBotToken());
 		});
 	}
 }

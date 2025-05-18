@@ -16,14 +16,15 @@ import org.telegram.forcesubmultibot.service.CommandService;
 import org.telegram.forcesubmultibot.service.ConfigurationService;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
 public class BotController {
 	private static final Logger log = LoggerFactory.getLogger(BotController.class);
-	private final List<String> tokenList = new ArrayList<>();
+	private final Set<String> tokenList = new HashSet<>();
 	private final UserRepository userRepository;
 	private final CommandService commandService;
 	private final ConfigurationService configurationService;
@@ -43,21 +44,58 @@ public class BotController {
 	@PostMapping("/webhook/{botToken}")
 	@Async("webhookExecutor")
 	public CompletableFuture<String> webhook(@PathVariable String botToken, @RequestBody Update update) {
-    if (tokenList.contains(botToken)) {
-		return configurationService.getConfiguration(update.getMessage().getChatId())
-				.thenApply(configuration -> {
-					if (configuration == null) {
-						log.warn("No configuration found for chat ID: {}", update.getMessage().getChatId());
-						return "Configuration not found";
-					}
-					log.info("Configuration Bot Token is {}", configuration.getBotToken());
-					commandService.handle(configuration, update);
-					return "OK";
+    	if (tokenList.contains(botToken)) {
+    		// Process the update as usual
+    		handleUpdate(botToken, update);
+		} else {
+    		// Bot token not in our local cache, check if it exists in database
+    		log.info("Token not found in cache, checking database: {}", botToken);
+    
+    		return configurationService.getConfigurationByToken(botToken)
+        		.thenCompose(configuration -> {
+            		if (configuration != null) {
+                		// Token exists in database, add it to our local cache
+                		log.info("Found token in database, adding to cache: {}", botToken);
+                		tokenList.add(botToken);
+                
+                		// Now process the update
+                		return handleUpdate(botToken, update);
+            		} else {
+                		log.warn("Bot token not registered: {}", botToken);
+                		return CompletableFuture.completedFuture("Bot not registered");
+            		}
 				});
+			}
+		return null;
+		}
 
-	}
-    return CompletableFuture.completedFuture("Not In Token");
-}
+		// Helper method to handle the update
+		private CompletableFuture<String> handleUpdate(String botToken, Update update) {
+    		Long chatId;
+    		if (update.hasMessage()) {
+        		chatId = update.getMessage().getChatId();
+    		} else if (update.hasCallbackQuery()) {
+        		chatId = update.getCallbackQuery().getMessage().getChatId();
+    		} else {
+        		chatId = null;
+    		}
+
+    		log.info("Webhook update: {}", update.getMessage() != null ?
+					update.getMessage().getText() :
+        		(update.getCallbackQuery() != null ? update.getCallbackQuery().getData() : "unknown update type"));
+    		log.info("Chat ID: {}", chatId);
+    
+    		return configurationService.getConfigurationByToken(botToken)
+        		.thenApply(configuration -> {
+            		if (configuration == null) {
+                		log.warn("No configuration found for bot token: {}", botToken);
+                		return "Configuration not found";
+            		}
+            		log.info("Configuration Bot Token is {}", configuration.getBotToken());
+            		commandService.handle(configuration, update);
+            		return "OK";
+        		});
+		}
 
 	@PostConstruct
 	public void init() {

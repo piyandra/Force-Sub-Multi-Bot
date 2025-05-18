@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface ConfigurationRepository extends JpaRepository<Configuration, Long> {
 
 	Optional<Configuration> findByUserId(Users userId);
+
+	Optional<Configuration> findByBotToken(String botToken);
 }

@@ -18,7 +18,16 @@ public class UserService {
 
     @Transactional
     public CompletableFuture<Users> saveUser(Users users) {
-        return CompletableFuture.supplyAsync(() -> userRepository.save(users));
+        return CompletableFuture.supplyAsync(() -> {
+            Users users1 = userRepository.findById(users.getUserId()).orElse(null);
+            if (users1 != null) {
+                users1.setUserId(users.getUserId());
+                users1.setBotToken(users.getBotToken());
+                return userRepository.save(users1);
+            } else {
+                return userRepository.save(users);
+            }
+        });
     }
 
     @Transactional(readOnly = true)
@@ -27,9 +36,14 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public CompletableFuture<String> getBotToken(Long userId) {
+    public CompletableFuture<Users> getToken(String token) {
+        return CompletableFuture.supplyAsync(() -> userRepository.findUsersByBotToken(token).orElse(null));
+    }
+
+    @Transactional(readOnly = true)
+    public CompletableFuture<String> getBotToken(String userId) {
         return CompletableFuture.supplyAsync(() -> {
-            Users users = userRepository.findById(userId).orElse(null);
+            Users users = userRepository.findUsersByBotToken(userId).orElse(null);
             return users != null ? users.getBotToken() : null;
         });
     }

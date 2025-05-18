@@ -1,6 +1,5 @@
 package org.telegram.forcesubmultibot.service;
 
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.telegram.forcesubmultibot.entity.Configuration;
@@ -31,7 +30,6 @@ public class ConfigurationService {
      * @return CompletableFuture with void result
      */
     @Transactional
-    @Async("service")
     public CompletableFuture<Void> saveConfiguration(Configuration configuration) {
         configurationRepository.save(configuration);
         return CompletableFuture.completedFuture(null);
@@ -43,17 +41,34 @@ public class ConfigurationService {
      * @param chatId the chat ID
      * @return CompletableFuture with the configuration or null if not found
      */
-public CompletableFuture<Configuration> getConfiguration(Long chatId) {
-    return userService.getUser(chatId)
-        .thenCompose(user -> {
-            if (user == null) {
-                return CompletableFuture.completedFuture(null);
-            }
-            return CompletableFuture.supplyAsync(() -> 
-                configurationRepository.findByUserId(user).orElse(null)
-            );
-        });
-}
+	public CompletableFuture<Configuration> getConfiguration(Long chatId) {
+    	return userService.getUser(chatId)
+        	.thenCompose(user -> {
+            	if (user == null) {
+                	return CompletableFuture.completedFuture(null);
+            	}
+            	return CompletableFuture.supplyAsync(() ->
+                	configurationRepository.findByUserId(user).orElse(null)
+            	);
+        	});
+	}
+	/**
+	 * Retrieves a configuration by chat ID asynchronously.
+	 *
+
+	 * @return CompletableFuture with the configuration or null if not found
+	 */
+	public CompletableFuture<Configuration> getConfigurationByToken(String token) {
+		return userService.getBotToken(token)
+				.thenCompose(user -> {
+					if (user == null) {
+						return CompletableFuture.completedFuture(null);
+					}
+					return CompletableFuture.supplyAsync(() ->
+							configurationRepository.findByBotToken(token).orElse(null)
+					);
+				});
+	}
 
 
 	/**
@@ -64,7 +79,6 @@ public CompletableFuture<Configuration> getConfiguration(Long chatId) {
      * @return CompletableFuture with void result
      */
     @Transactional
-    @Async("service")
     public CompletableFuture<Void> setHelpMessage(Long chatId, String helpMessage) {
         CompletableFuture.runAsync(() -> configurationRepository.findById(chatId).map(data -> {
 			data.setHelpMessage(helpMessage);
@@ -81,7 +95,6 @@ public CompletableFuture<Configuration> getConfiguration(Long chatId) {
      * @return CompletableFuture with void result
      */
     @Transactional
-    @Async("service")
     public CompletableFuture<Void> setWelcomeMessageNotJoined(Long chatId, String welcomeMessageNotJoined) {
         CompletableFuture.runAsync(() -> {
 			try {
@@ -106,7 +119,6 @@ public CompletableFuture<Configuration> getConfiguration(Long chatId) {
      * @return CompletableFuture with void result
      */
     @Transactional
-    @Async("service")
     public CompletableFuture<Void> setWelcomeMessageJoined(Long chatId, String welcomeMessageJoined) {
         configurationRepository.findById(chatId).ifPresent(data -> {
             data.setWelcomeMessageJoined(welcomeMessageJoined);
@@ -123,7 +135,6 @@ public CompletableFuture<Configuration> getConfiguration(Long chatId) {
      * @return CompletableFuture with void result
      */
     @Transactional
-    @Async("service")
     public CompletableFuture<Void> setProtectMedia(Long chatId, Boolean protectMedia) {
         CompletableFuture.runAsync(() -> configurationRepository.findById(chatId).ifPresent(data -> {
 			data.setProtectMedia(protectMedia);

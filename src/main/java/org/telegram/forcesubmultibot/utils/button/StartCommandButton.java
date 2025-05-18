@@ -9,10 +9,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class StartCommand {
+public class StartCommandButton {
 
 	public static final String HELP = "help";
-	public static final String SETUP = "setup";
+	public static final String OWNER = "https://t.me/anggaran_apbn";
 
 	public InlineKeyboardMarkup get() {
 		List<InlineKeyboardRow> rowList = new ArrayList<>();
@@ -22,8 +22,8 @@ public class StartCommand {
 						.callbackData(HELP)
 				.build());
 		row.add(InlineKeyboardButton.builder()
-						.text("SetUp Bot Kamu")
-						.callbackData(SETUP)
+						.text("BOT OWNER")
+						.url(OWNER)
 				.build());
 		rowList.add(row);
 		return InlineKeyboardMarkup.builder()

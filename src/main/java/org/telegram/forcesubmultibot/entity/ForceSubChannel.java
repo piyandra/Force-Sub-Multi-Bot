@@ -13,11 +13,11 @@ import lombok.*;
 public class ForceSubChannel {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
 	@ManyToOne
 	private Users chatId;
+	private String botToken;
 	@Enumerated(EnumType.STRING)
 	private ChannelType channelType;
 	private String channelLinks;

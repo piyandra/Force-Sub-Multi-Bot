@@ -17,12 +17,13 @@ import java.util.concurrent.CompletionException;
 @Service
 public class SendingMessage {
 
-    public CompletableFuture<Void> sendMessage(String chatId, String text, String botToken) {
+    public CompletableFuture<Void> sendMessage(String chatId, String text, InlineKeyboardMarkup inlineKeyboardMarkup, String botToken) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 TelegramClient client = createClient(botToken);
                 SendMessage message = SendMessage.builder()
                     .chatId(chatId)
+                        .replyMarkup(inlineKeyboardMarkup)
                     .text(text)
                     .build();
                 log.info("Sending Message");
