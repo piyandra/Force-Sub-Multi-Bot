@@ -1,5 +1,7 @@
 package org.telegram.forcesubmultibot.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.telegram.forcesubmultibot.entity.Configuration;
@@ -15,6 +17,7 @@ import java.util.stream.Collectors;
 @Service
 public class CommandService {
 
+	private static final Logger log = LoggerFactory.getLogger(CommandService.class);
 	private final Map<String, CommandProcessor> commandProcessors;
 	private final Map<String, CallbackProcessor> callbackProcessors;
 
@@ -26,8 +29,9 @@ public class CommandService {
 
 	}
 
-	@Async("handle")
+	@Async
 	public CompletableFuture<Void> handle(Configuration configuration, Update update) {
+		log.info("Handling update: {}", update.getMessage() != null ? update.getMessage().getText() : update.getCallbackQuery().getData());
 		if (update.hasMessage() && update.getMessage().hasText()) {
 			String text = update.getMessage().getText().trim().split(" ")[0];
 			CommandProcessor commandProcessor = commandProcessors.getOrDefault(text, null);

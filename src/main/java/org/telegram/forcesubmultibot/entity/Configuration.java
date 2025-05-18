@@ -13,6 +13,8 @@ import lombok.*;
 public class Configuration {
 
 	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 	@OneToOne
 	private Users userId;
 
