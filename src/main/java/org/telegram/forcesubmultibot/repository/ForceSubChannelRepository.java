@@ -17,5 +17,11 @@ public interface ForceSubChannelRepository extends JpaRepository<ForceSubChannel
 
 	Optional<ForceSubChannel> findByChatIdAndChannelType(Users chatId, ChannelType channelType);
 
-	List<ForceSubChannel> findByChannelLinks(String channelLinks);
+	Optional<ForceSubChannel> findByChannelLinks(String channelLinks);
+
+	List<ForceSubChannel> findAllByChannelType(ChannelType channelType);
+
+	boolean existsByChannelIdAndChannelType(Long channelId, ChannelType channelType);
+
+	List<ForceSubChannel> findByChannelId(Long channelId);
 }

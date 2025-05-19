@@ -21,4 +21,7 @@ public class Users {
 
 	@OneToMany(mappedBy = "chatId")
 	private List<ForceSubChannel> forceSubChannels;
+
+	@OneToMany
+	private List<Message> messages;
 }

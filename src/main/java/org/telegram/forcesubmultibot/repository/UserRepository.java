@@ -11,4 +11,6 @@ public interface UserRepository extends JpaRepository<Users, Long> {
 	boolean findUsersByUserId(Long userId);
 
 	Optional<Users> findUsersByBotToken(String botToken);
+
+	Optional<Users> findByUserId(Long userId);
 }

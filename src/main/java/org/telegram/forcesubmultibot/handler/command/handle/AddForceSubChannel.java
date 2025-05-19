@@ -85,22 +85,24 @@ public class AddForceSubChannel implements CommandProcessor {
                                                null, botToken);
                     return;
                 }
-                if (forceSubService.countDatabaseChannels(user, ChannelType.DATABASE) > 50) {
+                if (forceSubService.countDatabaseChannels(user, ChannelType.FORCE_SUB) > 50) {
+                    log.info("Force Sub Limit");
                     sendingMessage.sendMessage(chatIdStr, "Anda sudah memiliki 1 channel Force Sub database", null, botToken);
                     return;
                 }
-                
+                log.info("Force Sub Channel ID: {}", channelId);
                 ForceSubChannel channel = ForceSubChannel.builder()
                     .channelType(ChannelType.FORCE_SUB)
                     .id(Long.parseLong(channelId))
                     .chatId(user)
                     .channelLinks(links)
+                        .channelId(Long.parseLong(update.getMessage().getText().replace("/addfs ", "").replace(" ", "")))
                     .build();
 
+                log.info("Saving in Database");
                 
                 forceSubService.saveForceSubChannel(channel);
-                
-                // Notify success
+
                 sendingMessage.sendMessage(chatIdStr, 
                     "Berhasil menambahkan Channel ke Database: " + links, null, botToken);
                 

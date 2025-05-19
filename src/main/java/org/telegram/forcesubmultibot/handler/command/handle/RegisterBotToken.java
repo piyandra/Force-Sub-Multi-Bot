@@ -84,26 +84,27 @@ public class RegisterBotToken implements CommandProcessor {
 				return;
 			}
 			
-			Configuration newConfiguration = new Configuration();
-			newConfiguration.setBotToken(botToken);
-			try {
-				newConfiguration.setUserId(userService.saveUser(Users.builder()
-						.botToken(botToken)
-						.userId(parsedOwnerId)
-						.build()).get());
-			} catch (InterruptedException | ExecutionException e) {
-				log.error("Error saving user", e);
-				sendingMessage.sendMessage(update.getMessage().getChatId().toString(), 
-					"Terjadi kesalahan saat menyimpan data", null, configuration.getBotToken());
-				return;
-			}
+
 			try {
 				Configuration existingConfig = configurationService.getConfiguration(parsedOwnerId).get();
-				if (existingConfig != null && 
-					existingConfig.getUserId() != null && 
+				if (existingConfig != null &&
+					existingConfig.getUserId() != null &&
 					existingConfig.getUserId().getUserId().equals(parsedOwnerId)) {
 					sendingMessage.sendMessage(update.getMessage().getChatId().toString(),
 						"User ID sudah terdaftar", null, configuration.getBotToken());
+					return;
+				}
+				Configuration newConfiguration = new Configuration();
+				newConfiguration.setBotToken(botToken);
+				try {
+					newConfiguration.setUserId(userService.saveUser(Users.builder()
+							.botToken(botToken)
+							.userId(parsedOwnerId)
+							.build()).get());
+				} catch (InterruptedException | ExecutionException e) {
+					log.error("Error saving user", e);
+					sendingMessage.sendMessage(update.getMessage().getChatId().toString(),
+							"Terjadi kesalahan saat menyimpan data", null, configuration.getBotToken());
 					return;
 				}
 

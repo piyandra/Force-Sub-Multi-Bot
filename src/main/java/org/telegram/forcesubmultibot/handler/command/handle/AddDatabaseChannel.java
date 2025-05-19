@@ -42,7 +42,6 @@ public class AddDatabaseChannel implements CommandProcessor {
     @Override
     public CompletableFuture<Void> process(Configuration configuration, Update update) {
         return CompletableFuture.runAsync(() -> {
-            // Get chat ID for sending messages
             Long chatId = update.getMessage().getChatId();
             String chatIdStr = chatId.toString();
             String botToken = configuration.getBotToken();
@@ -95,6 +94,7 @@ public class AddDatabaseChannel implements CommandProcessor {
                     .id(Long.parseLong(channelId))
                     .chatId(user)
                     .channelLinks(links)
+                        .channelId(Long.parseLong(update.getMessage().getText().replace("/adddb ", "").replace(" ", "")))
                     .build();
 
                 
@@ -102,7 +102,7 @@ public class AddDatabaseChannel implements CommandProcessor {
                 
                 // Notify success
                 sendingMessage.sendMessage(chatIdStr, 
-                    "Berhasil menambahkan Channel ke Database: " + links, null, botToken);
+                    "Berhasil menambahkan Channel ke Database : " + links, null, botToken);
                 
             } catch (InterruptedException | ExecutionException e) {
                 log.error("Error processing /adddb command", e);

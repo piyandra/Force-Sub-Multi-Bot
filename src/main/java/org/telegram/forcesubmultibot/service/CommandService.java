@@ -35,6 +35,10 @@ public class CommandService {
 		if (update.hasMessage() && update.getMessage().hasText()) {
 			String text = update.getMessage().getText().trim().split(" ")[0];
 			CommandProcessor commandProcessor = commandProcessors.getOrDefault(text, null);
+			if (commandProcessor == null) {
+				log.info("Command not found: {}", text);
+				return CompletableFuture.completedFuture(null);
+			}
 			return commandProcessor.process(configuration, update);
 		} else if (update.hasCallbackQuery()) {
 			String text = update.getCallbackQuery().getData().trim().split(" ")[0];

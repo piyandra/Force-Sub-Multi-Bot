@@ -21,4 +21,5 @@ public class ForceSubChannel {
 	@Enumerated(EnumType.STRING)
 	private ChannelType channelType;
 	private String channelLinks;
+	private Long channelId;
 }

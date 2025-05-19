@@ -14,6 +14,8 @@ import org.telegram.forcesubmultibot.entity.Users;
 import org.telegram.forcesubmultibot.repository.UserRepository;
 import org.telegram.forcesubmultibot.service.CommandService;
 import org.telegram.forcesubmultibot.service.ConfigurationService;
+import org.telegram.forcesubmultibot.service.ForceSubService;
+import org.telegram.forcesubmultibot.service.GenerateMessageService;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.HashSet;
@@ -28,6 +30,8 @@ public class BotController {
 	private final UserRepository userRepository;
 	private final CommandService commandService;
 	private final ConfigurationService configurationService;
+	private final ForceSubService forceSubService;
+	private final GenerateMessageService generateMessageService;
 
 	@Value("${bot.token}")
 	private String botToken;
@@ -35,26 +39,25 @@ public class BotController {
 	@Value("${user.id}")
 	private String ownerId;
 
-	public BotController(UserRepository userRepository, CommandService commandService, ConfigurationService configurationService) {
+	public BotController(UserRepository userRepository, CommandService commandService, ConfigurationService configurationService, ForceSubService forceSubService, GenerateMessageService generateMessageService) {
 		this.userRepository = userRepository;
 		this.commandService = commandService;
 		this.configurationService = configurationService;
+		this.forceSubService = forceSubService;
+		this.generateMessageService = generateMessageService;
 	}
 
 	@PostMapping("/webhook/{botToken}")
 	@Async("webhookExecutor")
 	public CompletableFuture<String> webhook(@PathVariable String botToken, @RequestBody Update update) {
     	if (tokenList.contains(botToken)) {
-    		// Process the update as usual
     		handleUpdate(botToken, update);
 		} else {
-    		// Bot token not in our local cache, check if it exists in database
     		log.info("Token not found in cache, checking database: {}", botToken);
     
     		return configurationService.getConfigurationByToken(botToken)
         		.thenCompose(configuration -> {
             		if (configuration != null) {
-                		// Token exists in database, add it to our local cache
                 		log.info("Found token in database, adding to cache: {}", botToken);
                 		tokenList.add(botToken);
                 
@@ -69,7 +72,6 @@ public class BotController {
 		return null;
 		}
 
-		// Helper method to handle the update
 		private CompletableFuture<String> handleUpdate(String botToken, Update update) {
     		Long chatId;
     		if (update.hasMessage()) {
@@ -79,8 +81,12 @@ public class BotController {
     		} else {
         		chatId = null;
     		}
+			if (chatId != null && update.getMessage() != null && forceSubService.isInDatabase(chatId)) {
+				generateMessageService.sendMessage(botToken, update.getMessage().getMessageId(), update.getMessage().getChatId());
+				return CompletableFuture.completedFuture(null);
+			}
 
-    		log.info("Webhook update: {}", update.getMessage() != null ?
+			log.info("Webhook update: {}", update.getMessage() != null ?
 					update.getMessage().getText() :
         		(update.getCallbackQuery() != null ? update.getCallbackQuery().getData() : "unknown update type"));
     		log.info("Chat ID: {}", chatId);
@@ -99,21 +105,50 @@ public class BotController {
 
 	@PostConstruct
 	public void init() {
-		long start = System.currentTimeMillis();
-		log.info("Initializing BotController with bot token: {}", botToken);
-		System.out.println();
-		configurationService.saveConfiguration(Configuration.builder()
-						.botToken(botToken)
-						.userId(userRepository.save(Users.builder().userId(Long.parseLong(ownerId)).botToken(botToken).build()))
-				.build());
-		tokenList.add(botToken);
-		List<Users> all = userRepository.findAll();
-		for (Users users : all) {
-			if (!users.getBotToken().equals(botToken)) {
-				tokenList.add(users.getBotToken());
-			}
-		}
-		log.info("BotController initialized with {} tokens in {} ms", tokenList.size(), System.currentTimeMillis() - start);
-
-	}
+    long start = System.currentTimeMillis();
+    log.info("Initializing BotController with bot token: {}", botToken);
+    
+    // First, check if a configuration with this token already exists
+    configurationService.getConfigurationByToken(botToken)
+        .thenAccept(existingConfig -> {
+            try {
+                // If no configuration exists, create a new one
+                if (existingConfig == null) {
+                    Users user = userRepository.findByUserId(Long.parseLong(ownerId))
+                        .orElseGet(() -> userRepository.save(Users.builder()
+                            .userId(Long.parseLong(ownerId))
+                            .botToken(botToken)
+                            .build()));
+                            
+                    configurationService.saveConfiguration(Configuration.builder()
+                        .botToken(botToken)
+                        .userId(user)
+                        .build());
+                    log.info("Created new configuration for bot token: {}", botToken);
+                } else {
+                    log.info("Using existing configuration for bot token: {}", botToken);
+                }
+                
+                // Add the bot token to the token list
+                tokenList.add(botToken);
+                
+                // Add other bot tokens to the token list
+                List<Users> all = userRepository.findAll();
+                for (Users users : all) {
+                    if (!users.getBotToken().equals(botToken)) {
+                        tokenList.add(users.getBotToken());
+                    }
+                }
+                
+                log.info("BotController initialized with {} tokens in {} ms", 
+                    tokenList.size(), System.currentTimeMillis() - start);
+                    
+            } catch (Exception e) {
+                log.error("Error initializing BotController", e);
+            }
+        }).exceptionally(ex -> {
+            log.error("Error checking for existing configuration", ex);
+            return null;
+        });
+}
 }
